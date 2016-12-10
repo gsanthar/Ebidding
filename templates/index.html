@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>EBidding</title>
+
+
+    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
+
+
+  </head>
+
+  <body>
+	<div class="container" style="min-height:100% width:80%">
+	{% with messages = get_flashed_messages() %}
+	  {% if messages %}
+	    {% for message in messages %}
+		  <div class="alert alert-warning alert-dismissible" role="alert">
+		  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+			{{message}}
+		  </div>
+		{% endfor %}
+	  {% endif %}
+	{% endwith %}
+
+	{% block body %}{% endblock %}
+	</div>
+
+
+    <div class="container">
+      <div class="header">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation" class="active"><a href="/">Home</a></li>
+
+            {% if session_user_name %}
+                <li role="presentation"><a href="/products">Products</a></li>
+                <li role="presentation"><a href="/logout">Logout</a></li>
+            {% else %}
+                <li role="presentation"><a href="/login">Login</a></li>
+ 	            <li role="presentation"><a href="/Register">Register</a></li>
+ 	        {% endif %}
+          </ul>
+        </nav>
+        <h3 class="text-muted">EBidding</h3>
+      </div>
+
+    {% if session_user_name %}
+                <p align="right">Hello <b>{{ session_user_name }}</b></p>
+    {% endif %}
+
+      <div class="container">
+        <h1>Welcome to EBidding</h1>
+        <p class="lead"></p>
+        <p><a class="btn btn-lg btn-success" href="Register" role="button">Sign up today</a></p>
+      </div>
+
+      <div class="row marketing">
+        <div class="col-lg-6">
+          <h4>How to add Products for auctions</h4>
+          <p>Register with EBidding to add a product to auction</p>
+
+          <p>Each product  will be open for 5 minutes for bidding</p>
+
+          <p>End of 5 minutes Client with highest bid wins</p>
+        </div>
+
+        <div class="col-lg-6">
+          <h4>How to Bid products</h4>
+          <p>Register with EBidding to bid for an item</p>
+
+          <p>Can bid a product for any number of times</p>
+
+          <p>Client will indicated if it wins the Bid</p>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <p>&copy; GaneshSanthar</p>
+      </footer>
+
+    </div>
+  </body>
+</html>
+
