@@ -6,7 +6,7 @@ from werkzeug import generate_password_hash, check_password_hash
 from datetime import date, datetime
 from flask.ext.login import LoginManager
 import datetime as dt
-
+from sqlalchemy import desc
 
 
 
@@ -86,6 +86,9 @@ class Product(db.Model):
     def get_owner(self):
         return self.owner_id
 
+    def get_sold(self):
+        return self.sold
+
     def get_saleDuration(self):
         return self.saleDuration
 
@@ -112,8 +115,8 @@ class Product(db.Model):
 
     def get_expr_date(self):
         """return date when book should run out of time.
-        Assuming that saleDuration is in days. """
-        return self.date_added + dt.timedelta(days = self.saleDuration)
+        Assuming that saleDuration is in minutes. """
+        return self.date_added + dt.timedelta(minutes = self.saleDuration)
 
 
     def until_expire_in_mins(self):
@@ -127,18 +130,33 @@ class Product(db.Model):
         """returns time until book expires in hours"""
         return (self.until_expire_in_mins() / 60)
 
-    def __init__(self, title=None, saleDuration=None,bookType=None, biddable=None,
-            current_bid=None,starting_bid=None, date_added=None, owner=None):
+    def get_bid_status(self):
+        state = self.until_expire_in_mins()
+        if state > 0:
+            status = "Expires in" + str(state) + "minutes"
+            return str(status)
+        else:
+            biddable = False
+            return str('bidding expired')
+
+    def get_highest_bid(self):
+        """returns bid object with highest bid amount for book."""
+        bid = Bid.query.filter_by(product_id=self.id).order_by(desc(Bid.bid_price)).first()
+        return bid
+
+
+    def __init__(self, title=None, saleDuration=None, product_type=None, 
+            current_bid=None,starting_bid=None, date_added=None, owner_id=None):
         '''init method. so this only runs during the creation of book object.'''
         self.title = title
         self.saleDuration = saleDuration
-        self.bookType = bookType
-        self.biddable = biddable
+        self.product_type = product_type
+        self.biddable = 1
         # force starting_bid to be current_bid
         self.current_bid = current_bid
         self.starting_bid = starting_bid
         self.date_added = datetime.utcnow()
-        self.owner = owner
+        self.owner_id = owner_id
 
 
 
@@ -153,11 +171,16 @@ class Bid(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey('tbl_user.id'), nullable=False)
     timestamp = db.Column(db.DateTime)
     bid_price = db.Column(db.Float, nullable=False)
+    
+    def get_bidder(self):
+        return self.buyer_id
 
 
     def __init__(self, product, bidder, bid_price):
-        self.bidder = bidder
-        self.product = product
+        self.buyer_id = bidder
+        self.product_id = product
         self.bid_price = bid_price
         self.timestamp = datetime.utcnow()
+
+
 
