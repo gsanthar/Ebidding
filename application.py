@@ -1,3 +1,4 @@
+import threading
 from flask import Flask, session, render_template, redirect, url_for, request, flash, json, g
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -32,7 +33,7 @@ db = SQLAlchemy(application)
 # Flask Login
 login_manager = LoginManager()
 login_manager.init_app(application)
-socketio = SocketIO(application, async_mode=async_mode)
+socketio = SocketIO(application, async_mode="threading")
 thread = None
 user_found = 2
 
