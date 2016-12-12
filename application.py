@@ -1,5 +1,3 @@
-from gevent import monkey
-monkey.patch_all()
 from flask import Flask, session, render_template, redirect, url_for, request, flash, json, g
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -36,6 +34,7 @@ login_manager = LoginManager()
 login_manager.init_app(application)
 socketio = SocketIO(application, async_mode=async_mode)
 thread = None
+user_found = 2
 
 
 def background_thread():
@@ -183,25 +182,47 @@ def login():
     return render_template('login.html')
 
 
-@application.route('/logout')
+def test_user():
+    uid = session['user_id']
+    p_state = Product()
+    query_state = p_state.query.order_by(p_state.id).all()
+    for index in range(len(query_state)):
+        bid_status = query_state[index].get_bid_status()
+        if bid_status != "bidding expired":
+           bids_act = query_state[index].get_all_bids()
+           for indx in range(len(bids_act)):
+               if uid in bids_act.buyer_id:
+                  user_found = 1
+               else:
+                   user_found = 0
+                   print('user not found')
+        else:
+            print('no active bids')
+
+
+@application.route('/logout', methods=['GET'])
 @login_required
 def logout():
     '''
     This function signs the user out of the system
     '''
+    test_user()
     user = User.query.filter_by(id = session['user_id']).first()
-    user.last_logout = datetime.utcnow()
-    # put user_id in session for later use
-    db.session.commit()
-    # delete session created during login
-    uid = session['user_id']
-    if uid in clients:
-       del clients[uid]
-    del session['user_id']
-    logout_user()
-    msg = "%s Logged out." % user.first_name
-    flash(msg)
-    return redirect(url_for('main'))
+    if user_found == 1:
+       msg = "User %s Active in a bid." % user.first_name
+       flash(msg)
+       return redirect(url_for('main'))
+    else:
+       # put user_id in session for later use
+       db.session.commit()
+       # delete session created during login
+       del session['user_id']
+       user.last_logout = datetime.utcnow()
+       logout_user()
+       msg = "%s Logged out." % user.first_name
+       flash(msg)
+       return redirect(url_for('main'))
+
 
 
 @login_required
@@ -338,7 +359,8 @@ def Register():
 
 
 if __name__ == "__main__":
-
+    from gevent import monkey
+    monkey.patch_all()
     application.debug = True
     #application.run(host='0.0.0.0')
     socketio.run(application,host='0.0.0.0')

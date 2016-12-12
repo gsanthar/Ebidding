@@ -144,6 +144,10 @@ class Product(db.Model):
         bid = Bid.query.filter_by(product_id=self.id).order_by(desc(Bid.bid_price)).first()
         return bid
 
+    def get_all_bids(self):
+        """returns bid object with highest bid amount for book."""
+        bid = Bid.query.filter_by(product_id=self.id).order_by(desc(Bid.bid_price)).all()
+        return bid
 
     def __init__(self, title=None, saleDuration=None, product_type=None, 
             current_bid=None,starting_bid=None, date_added=None, owner_id=None):
