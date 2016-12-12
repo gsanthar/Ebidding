@@ -38,14 +38,13 @@ thread = None
 user_found = 2
 
 
-def background_thread():
-    """Example of how to send server generated events to clients."""
-    count = 0
-    while True:
-        socketio.sleep(10)
+
+def th_func():
         p_state = Product()
+        print('Testing product')
         query_state = p_state.query.order_by(p_state.id).all()
         for index in range(len(query_state)):
+            print(query_state[index].get_id())
             bid_status = query_state[index].get_bid_status()
             if bid_status == "bidding expired":
                announced = query_state[index].get_sold()
@@ -57,12 +56,21 @@ def background_thread():
                          username_high = user_high.first_name
                          print('username is', username_high)
                          product_high = query_state[index].get_title()
-                         print('product is', product_high)			
+                         print('product is', product_high)
                          socketio.emit('my_response',
                          {'data': 'Auction Closed', 'cnt':'for', 'product': product_high, 'wnr':'And the Winner is', 'winner':username_high},
                          broadcast = True,namespace='/test')
-                         #query_state[index].sold = True
+                         #query_state[index].sold = 1
+                         #db.session.commit()
+    
 
+def background_thread():
+    """Example of how to send server generated events to clients."""
+    count = 0
+    while True:
+        socketio.sleep(10)
+        th_func()
+        #socketio.emit('my_res', {'data': 'Connected'})
 
 @application.before_request
 def before_request():
@@ -192,7 +200,7 @@ def test_user():
         if bid_status != "bidding expired":
            bids_act = query_state[index].get_all_bids()
            for indx in range(len(bids_act)):
-               if uid in bids_act.buyer_id:
+               if uid in bids_act[indx].buyer_id:
                   user_found = 1
                else:
                    user_found = 0
@@ -215,10 +223,10 @@ def logout():
        return redirect(url_for('main'))
     else:
        # put user_id in session for later use
-       db.session.commit()
        # delete session created during login
        del session['user_id']
        user.last_logout = datetime.utcnow()
+       db.session.commit()
        logout_user()
        msg = "%s Logged out." % user.first_name
        flash(msg)
@@ -229,8 +237,8 @@ def logout():
 @login_required
 @application.route('/products' ,methods=['POST','GET'])
 def products():
-    p = Product()
-    query = p.query.order_by(p.owner_id).all()
+    p_shw = Product()
+    query_shw = p_shw.query.order_by(p_shw.owner_id).all()
     user = User.query.filter_by(id = session['user_id']).first()
     username_session = user.username
     if request.method == 'POST':
@@ -252,29 +260,31 @@ def products():
                     db.session.commit()
                     msg = "New Product %s added." % pname
                     flash(msg)
-                    query = p.query.order_by(p.owner_id).all()
+                    p_suc = Product()
+                    query_suc = p_suc.query.order_by(p_suc.owner_id).all()
                     user = User.query.filter_by(id = session['user_id']).first()
                     username_session = user.username
-                    return render_template('products.html',obj=query,session_user_name=username_session)
+                    return render_template('products.html',obj=query_suc,session_user_name=username_session)
             else:
                 flash('Enter all the Required Fields')
-                p = Product()
+                p_fir = Product()
+                query_fir = p_fir.query.order_by(p_fir.owner_id).all()
                 user = User.query.filter_by(id = session['user_id']).first()
                 username_session = user.username
-                return render_template('products.html',obj=query,session_user_name=username_session)
+                return render_template('products.html',obj=query_fir,session_user_name=username_session)
 
         except Exception as e:
             return json.dumps({'error':str(e)})
 
                 
-    return render_template('products.html',obj=query,session_user_name=username_session)
+    return render_template('products.html',obj=query_shw,session_user_name=username_session)
     #return render_template('products.html')
 
 @login_required
 @application.route('/bids' ,methods=['POST','GET'])
 def bids():
     p_bids = Product()
-    query = p_bids.query.order_by(p_bids.owner_id).all()
+    query_bids = p_bids.query.order_by(p_bids.owner_id).all()
     user_bids = User.query.filter_by(id = session['user_id']).first()
     username_session = user_bids.username
     if request.method == 'POST':
@@ -293,22 +303,23 @@ def bids():
                     db.session.commit()
                     msg = "New bid added."
                     flash(msg)
-                    p = Product()
-                    query = p.query.order_by(p.owner_id).all()
+                    p_fbid = Product()
+                    query_fbid = p_fbid.query.order_by(p_fbid.owner_id).all()
                     user = User.query.filter_by(id = session['user_id']).first()
                     username_session = user.username
-                    return render_template('products.html',obj=query,session_user_name=username_session)
+                    return render_template('products.html',obj=query_fbid,session_user_name=username_session)
             else:
                 flash('Enter all the Required Fields')
-                p = Product()
+                p_sid = Product()
+                query_sid = p_sid.query.order_by(p_sid.owner_id).all()
                 user = User.query.filter_by(id = session['user_id']).first()
                 username_session = user.username
-                return render_template('products.html',obj=query,session_user_name=username_session)
+                return render_template('products.html',obj=query_sid,session_user_name=username_session)
 
         except Exception as e:
             return json.dumps({'error':str(e)})
 
-    return render_template('products.html',obj=query,session_user_name=username_session)
+    return render_template('products.html',obj=query_bids,session_user_name=username_session)
                 
 @application.route('/Register',methods=['POST','GET'])
 def Register():
