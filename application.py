@@ -220,31 +220,6 @@ def test_user():
             print('no active bids')
 
 
-@application.route('/logout', methods=['GET'])
-@login_required
-def logout():
-    '''
-    This function signs the user out of the system
-    '''
-    global user_found
-    test_user()
-    print(user_found)
-    user = User.query.filter_by(id = session['user_id']).first()
-    if user_found > 1:
-       user_found = 1
-       msg = "User %s Active in a bid." % user.first_name
-       flash(msg)
-       return redirect(url_for('main'))
-    else:
-       # put user_id in session for later use
-       # delete session created during login
-       del session['user_id']
-       user.last_logout = datetime.utcnow()
-       db.session.commit()
-       logout_user()
-       msg = "%s Logged out." % user.first_name
-       flash(msg)
-       return redirect(url_for('main'))
 
 
 
@@ -265,7 +240,7 @@ def products():
                     p = Product(
                             owner_id = owner,
                             title = pname,
-                            saleDuration = 6,
+                            saleDuration = 5,
                             product_type = ptype,
                             starting_bid = sbid,
                             )
@@ -382,6 +357,35 @@ def Register():
             return json.dumps({'error':str(e)})
 
     return render_template('signup.html')
+
+
+@application.route('/logout', methods=['GET'])
+@login_required
+def logout():
+    '''
+    This function signs the user out of the system
+    '''
+    global user_found
+    test_user()
+    print(user_found)
+    user = User.query.filter_by(id = session['user_id']).first()
+    if user_found > 1:
+       user_found = 1
+       msg = "User %s Active in a bid." % user.first_name
+       flash(msg)
+       return redirect(url_for('products'))
+    else:
+       # put user_id in session for later use
+       # delete session created during login
+       del session['user_id']
+       user.last_logout = datetime.utcnow()
+       db.session.commit()
+       logout_user()
+       msg = "%s Logged out." % user.first_name
+       flash(msg)
+       return redirect(url_for('main'))
+
+
 
 
 if __name__ == "__main__":
