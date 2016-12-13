@@ -1,4 +1,3 @@
-import threading
 from flask import Flask, session, render_template, redirect, url_for, request, flash, json, g
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -33,9 +32,12 @@ db = SQLAlchemy(application)
 # Flask Login
 login_manager = LoginManager()
 login_manager.init_app(application)
-socketio = SocketIO(application, async_mode="threading")
+socketio = SocketIO(application, async_mode=async_mode)
 thread = None
-user_found = 2
+user_found = 1
+owner_act = 2
+
+
 
 
 
@@ -62,13 +64,15 @@ def th_func():
                          broadcast = True,namespace='/test')
                          #query_state[index].sold = 1
                          #db.session.commit()
+
+
     
 
 def background_thread():
     """Example of how to send server generated events to clients."""
     count = 0
     while True:
-        socketio.sleep(10)
+        socketio.sleep(100)
         th_func()
         #socketio.emit('my_res', {'data': 'Connected'})
 
@@ -106,9 +110,9 @@ def test_connect():
 '''
 @socketio.on('connect', namespace='/test')
 def test_connect():
-    global thread
-    if thread is None:
-        thread = socketio.start_background_task(target=background_thread)
+#    global thread
+#    if thread is None:
+#        thread = socketio.start_background_task(target=background_thread)
     if current_user.is_authenticated:
         user_room = 'user_{}'.format(session['user_id'])
         join_room(user_room)
@@ -121,6 +125,7 @@ def test_disconnect():
 
 @socketio.on('my_event', namespace='/test')
 def test_msg(message):
+    th_func()
     print('Socket id is %s',message['data'])
 
 @authenticated_only
@@ -192,18 +197,24 @@ def login():
 
 
 def test_user():
+    global user_found
     uid = session['user_id']
     p_state = Product()
     query_state = p_state.query.order_by(p_state.id).all()
     for index in range(len(query_state)):
         bid_status = query_state[index].get_bid_status()
         if bid_status != "bidding expired":
+           usr_act = query_state[index].get_owner()
+           if uid == usr_act:
+              user_found += 1
+              print(user_found)
            bids_act = query_state[index].get_all_bids()
            for indx in range(len(bids_act)):
-               if uid in bids_act[indx].buyer_id:
-                  user_found = 1
+               print('bidder:',bids_act[indx].buyer_id)
+               if uid == bids_act[indx].buyer_id:
+                  user_found += 1
                else:
-                   user_found = 0
+                   user_found = 1
                    print('user not found')
         else:
             print('no active bids')
@@ -215,9 +226,12 @@ def logout():
     '''
     This function signs the user out of the system
     '''
+    global user_found
     test_user()
+    print(user_found)
     user = User.query.filter_by(id = session['user_id']).first()
-    if user_found == 1:
+    if user_found > 1:
+       user_found = 1
        msg = "User %s Active in a bid." % user.first_name
        flash(msg)
        return redirect(url_for('main'))
@@ -251,7 +265,7 @@ def products():
                     p = Product(
                             owner_id = owner,
                             title = pname,
-                            saleDuration = 5,
+                            saleDuration = 6,
                             product_type = ptype,
                             starting_bid = sbid,
                             )
@@ -376,5 +390,4 @@ if __name__ == "__main__":
     application.debug = True
     #application.run(host='0.0.0.0')
     socketio.run(application,host='0.0.0.0')
-    #socketio.run(application,host='0.0.0.0',logger=True, engineio_logger=True)
 
